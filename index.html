@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -7,9 +8,11 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="mobile-web-app-capable" content="yes">
     <title>Photo Booth</title>
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📸</text></svg>">
+    <link rel="icon"
+        href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📸</text></svg>">
     <link rel="stylesheet" href="css/style.css">
 </head>
+
 <body>
     <!-- Orientation warning for landscape mode -->
     <div id="orientation-warning" class="orientation-warning hidden">
@@ -29,7 +32,8 @@
             <p>Please scan this QR code or visit this URL on your phone:</p>
             <div style="background: white; padding: 20px; border-radius: 10px; margin: 20px 0;">
                 <p style="color: #333; font-weight: bold;">https://172.16.81.134:8444</p>
-                <p style="color: #666; font-size: 14px; margin-top: 10px;">⚠️ Accept the SSL certificate warning when accessing on mobile</p>
+                <p style="color: #666; font-size: 14px; margin-top: 10px;">⚠️ Accept the SSL certificate warning when
+                    accessing on mobile</p>
             </div>
         </div>
 
@@ -48,30 +52,31 @@
             <div class="camera-container">
                 <!-- Live camera feed -->
                 <video id="camera-video" playsinline autoplay muted></video>
-                
+
                 <!-- Character overlay video (sources set dynamically by JavaScript) -->
                 <video id="character-overlay" playsinline autoplay muted loop class="character-overlay">
                     <!-- Video sources will be added dynamically based on device detection -->
                 </video>
-                
+
                 <!-- Fallback static overlay -->
-                <img id="fallback-overlay" src="images/fallback.png" alt="Character overlay" class="character-overlay hidden">
-                
+                <img id="fallback-overlay" src="images/fallback.png" alt="Character overlay"
+                    class="character-overlay hidden">
+
                 <!-- Custom frame elements -->
                 <div class="custom-frame">
                     <img id="logo" src="images/logo.png" alt="Logo" class="frame-logo">
                     <img id="qrcode" src="images/qrcode.png" alt="QR Code" class="frame-qrcode">
                 </div>
-                
+
                 <!-- Canvas for capture (hidden) -->
                 <canvas id="capture-canvas" class="hidden"></canvas>
-                
+
                 <!-- Countdown overlay -->
                 <div id="countdown-overlay" class="countdown-overlay hidden">
                     <div class="countdown-number">3</div>
                 </div>
             </div>
-            
+
             <!-- UI Controls -->
             <div class="controls">
                 <!-- Top controls -->
@@ -80,11 +85,12 @@
                         <img src="images/ui-flip.svg" alt="Flip Camera">
                     </button>
                     <!-- DEBUG: Video test button -->
-                    <button id="debug-video" class="btn-icon" title="Debug Videos" style="margin-left: 10px; background: rgba(255,0,0,0.7);">
+                    <button id="debug-video" class="btn-icon" title="Debug Videos"
+                        style="margin-left: 10px; background: rgba(255,0,0,0.7);">
                         🔍
                     </button>
                 </div>
-                
+
                 <!-- Bottom controls -->
                 <div class="bottom-controls">
                     <button id="capture-button" class="btn-capture">
@@ -115,4 +121,5 @@
 
     <script src="js/script.js"></script>
 </body>
+
 </html>
