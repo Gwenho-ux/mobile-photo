@@ -1,3 +1,6 @@
+/* Import Montserrat font */
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap');
+
 /* Reset and base styles */
 * {
     margin: 0;
@@ -6,8 +9,9 @@
 }
 
 body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    background: #000;
+    font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: #000 url('../images/bg.png') no-repeat center center fixed;
+    background-size: cover;
     color: #fff;
     overflow: hidden;
     position: fixed;
@@ -26,7 +30,7 @@ body {
     left: 0;
     right: 0;
     bottom: 0;
-    background: #000;
+    background: rgba(0, 0, 0, 0.8);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -72,7 +76,7 @@ body {
 
 /* Permission screen */
 .permission-screen {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: transparent;
     align-items: center;
     justify-content: center;
     text-align: center;
@@ -93,7 +97,7 @@ body {
 
 /* Camera screen */
 .camera-screen {
-    background: #000;
+    background: transparent;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -311,13 +315,21 @@ body {
 /* Buttons */
 .btn-primary,
 .btn-secondary {
-    background: #007AFF;
-    color: white;
+    display: inline-flex;
+    padding: 17px 50px;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+    border-radius: 10px;
+    background: #25E3B0;
+    color: #2C3D30;
+    font-family: 'Montserrat', sans-serif;
+    font-size: 24px;
+    font-style: normal;
+    font-weight: 700;
+    line-height: normal;
+    letter-spacing: 0.72px;
     border: none;
-    border-radius: 25px;
-    padding: 15px 30px;
-    font-size: 1.1rem;
-    font-weight: 600;
     cursor: pointer;
     transition: all 0.2s ease;
     min-width: 200px;
@@ -325,19 +337,19 @@ body {
 
 .btn-primary:hover,
 .btn-primary:active {
-    background: #0056CC;
+    background: #1FC59A;
     transform: scale(0.98);
 }
 
 .btn-secondary {
     background: transparent;
-    border: 2px solid #007AFF;
+    border: 2px solid #25E3B0;
     margin-top: 15px;
 }
 
 .btn-secondary:hover,
 .btn-secondary:active {
-    background: #007AFF;
+    background: #25E3B0;
 }
 
 .btn-icon {
@@ -394,7 +406,7 @@ body {
 
 /* Results screen */
 .results-screen {
-    background: #000;
+    background: transparent;
     align-items: center;
     justify-content: center;
     padding: 2rem;
@@ -516,7 +528,7 @@ button:focus {
     align-items: center;
     justify-content: center;
     height: 100vh;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: transparent;
     color: white;
     text-align: center;
     padding: 2rem;
