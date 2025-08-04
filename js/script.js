@@ -17,8 +17,7 @@ class PhotoBoothApp {
             flipCameraBtn: document.getElementById('flip-camera'),
             debugVideoBtn: document.getElementById('debug-video'),
             captureBtn: document.getElementById('capture-button'),
-            downloadBtn: document.getElementById('download-button'),
-            shareBtn: document.getElementById('share-button'),
+
             takeAnotherBtn: document.getElementById('take-another'),
 
             cameraVideo: document.getElementById('camera-video'),
@@ -71,8 +70,7 @@ class PhotoBoothApp {
         this.elements.flipCameraBtn.addEventListener('click', () => this.flipCamera());
         this.elements.debugVideoBtn.addEventListener('click', () => this.debugVideoIssue());
         this.elements.captureBtn.addEventListener('click', () => this.capturePhoto());
-        this.elements.downloadBtn.addEventListener('click', () => this.downloadPhoto());
-        this.elements.shareBtn.addEventListener('click', () => this.sharePhoto());
+
         this.elements.takeAnotherBtn.addEventListener('click', () => this.takeAnother());
     }
 
@@ -85,8 +83,20 @@ class PhotoBoothApp {
         // Test MP4 with HEVC (iOS/Safari)
         const mp4Support = video.canPlayType('video/mp4; codecs="hvc1"') !== '';
 
-        // Test WebM with VP9 (Android)
-        const webmSupport = video.canPlayType('video/webm; codecs="vp9"') !== '';
+        // Test multiple WebM formats for Android compatibility
+        const webmVP9Support = video.canPlayType('video/webm; codecs="vp9"') !== '';
+        const webmVP8Support = video.canPlayType('video/webm; codecs="vp8"') !== '';
+        const webmSupport = webmVP9Support || webmVP8Support;
+
+        // Test MP4 with H.264 for broader Android compatibility
+        const mp4H264Support = video.canPlayType('video/mp4; codecs="avc1.42E01E"') !== '';
+
+        console.log('🎥 Video format support:', {
+            mp4HEVC: mp4Support,
+            webmVP9: webmVP9Support,
+            webmVP8: webmVP8Support,
+            mp4H264: mp4H264Support
+        });
 
         // Mobile detection (iOS, Android, and other mobile devices)
         const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
@@ -103,10 +113,17 @@ class PhotoBoothApp {
             this.state.supportsTransparentVideo = true;  // MOV supports transparency
             console.log('📱 iOS device detected - using MOV videos from ios folder');
         } else if (isAndroid) {
-            // Android uses WebM videos
-            this.poseVideos = ['android /idle', 'android /pose1', 'android /pose2'];
-            this.state.supportsTransparentVideo = webmSupport;
-            console.log('🤖 Android device detected - using WebM videos');
+            // Android uses WebM videos, but fallback to iOS if WebM not supported
+            if (webmSupport) {
+                this.poseVideos = ['android /idle', 'android /pose1', 'android /pose2'];
+                this.state.supportsTransparentVideo = true;
+                console.log('🤖 Android device detected - using WebM videos');
+            } else {
+                // Fallback to iOS MOV files for Android if WebM not supported
+                this.poseVideos = ['ios/idle', 'ios/pose1', 'ios/pose2'];
+                this.state.supportsTransparentVideo = true;
+                console.log('🤖 Android device detected - WebM not supported, falling back to iOS MOV videos');
+            }
         } else {
             // Desktop - Use iOS MOV files for testing
             this.poseVideos = ['ios/idle', 'ios/pose1', 'ios/pose2'];
@@ -156,17 +173,27 @@ class PhotoBoothApp {
             characterOverlay.appendChild(source);
             console.log('📱 iOS idle video configured (MOV):', source.src);
 
+        } else if (isAndroid) {
+            // Android: Try WebM first, then fallback to MOV
+            const webmSource = document.createElement('source');
+            webmSource.src = 'videos/android /idle.webm';
+            webmSource.type = 'video/webm; codecs=vp9';
+            characterOverlay.appendChild(webmSource);
+
+            // Fallback to iOS MOV for Android compatibility
+            const movSource = document.createElement('source');
+            movSource.src = 'videos/ios/idle.mov';
+            movSource.type = 'video/quicktime';
+            characterOverlay.appendChild(movSource);
+
+            console.log('🤖 Android idle video configured with WebM and MOV fallback');
         } else {
-            // Android OR Desktop: Use WebM from android folder  
+            // Desktop: Use WebM from android folder  
             const source = document.createElement('source');
             source.src = 'videos/android /idle.webm';
             source.type = 'video/webm; codecs=vp9';
             characterOverlay.appendChild(source);
-            if (isAndroid) {
-                console.log('🤖 Android idle video configured:', source.src);
-            } else {
-                console.log('💻 Desktop idle video configured (Android style):', source.src);
-            }
+            console.log('💻 Desktop idle video configured (Android style):', source.src);
         }
 
         // Reload video element to pick up new source
@@ -961,10 +988,7 @@ class PhotoBoothApp {
 
         console.log('✅ Final capture complete - matches screen view');
 
-        // Check if Web Share API is available
-        if (navigator.share) {
-            this.elements.shareBtn.classList.remove('hidden');
-        }
+        // Share functionality removed - using press and hold instead
     }
 
     /**
