@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="mobile-web-app-capable" content="yes">
+    <title>Photo Booth</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📸</text></svg>">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <!-- Orientation warning for landscape mode -->
+    <div id="orientation-warning" class="orientation-warning hidden">
+        <div class="warning-content">
+            <h2>📱</h2>
+            <p>Please rotate your phone to portrait mode</p>
+        </div>
+    </div>
+
+    <!-- Main app container -->
+    <div id="app" class="app-container">
+        <!-- Desktop Message - "Use Mobile to Open" -->
+        <div class="desktop-message">
+            <div class="mobile-icon">📱</div>
+            <h1>Use Mobile to Open</h1>
+            <p>This photo booth is designed for mobile devices.</p>
+            <p>Please scan this QR code or visit this URL on your phone:</p>
+            <div style="background: white; padding: 20px; border-radius: 10px; margin: 20px 0;">
+                <p style="color: #333; font-weight: bold;">https://172.16.81.134:8444</p>
+                <p style="color: #666; font-size: 14px; margin-top: 10px;">⚠️ Accept the SSL certificate warning when accessing on mobile</p>
+            </div>
+        </div>
+
+        <!-- Camera permission screen -->
+        <div id="permission-screen" class="permission-screen">
+            <div class="permission-content">
+                <h1>📸 Photo Booth</h1>
+                <p>Take fun photos with animated characters!</p>
+                <button id="start-camera" class="btn-primary">Start Camera</button>
+            </div>
+        </div>
+
+        <!-- Camera view screen -->
+        <div id="camera-screen" class="camera-screen hidden">
+            <!-- Camera container with 9:16 aspect ratio -->
+            <div class="camera-container">
+                <!-- Live camera feed -->
+                <video id="camera-video" playsinline autoplay muted></video>
+                
+                <!-- Character overlay video (sources set dynamically by JavaScript) -->
+                <video id="character-overlay" playsinline autoplay muted loop class="character-overlay">
+                    <!-- Video sources will be added dynamically based on device detection -->
+                </video>
+                
+                <!-- Fallback static overlay -->
+                <img id="fallback-overlay" src="images/fallback.png" alt="Character overlay" class="character-overlay hidden">
+                
+                <!-- Custom frame elements -->
+                <div class="custom-frame">
+                    <img id="logo" src="images/logo.png" alt="Logo" class="frame-logo">
+                    <img id="qrcode" src="images/qrcode.png" alt="QR Code" class="frame-qrcode">
+                </div>
+                
+                <!-- Canvas for capture (hidden) -->
+                <canvas id="capture-canvas" class="hidden"></canvas>
+                
+                <!-- Countdown overlay -->
+                <div id="countdown-overlay" class="countdown-overlay hidden">
+                    <div class="countdown-number">3</div>
+                </div>
+            </div>
+            
+            <!-- UI Controls -->
+            <div class="controls">
+                <!-- Top controls -->
+                <div class="top-controls">
+                    <button id="flip-camera" class="btn-icon" title="Flip Camera">
+                        <img src="images/ui-flip.svg" alt="Flip Camera">
+                    </button>
+                    <!-- DEBUG: Video test button -->
+                    <button id="debug-video" class="btn-icon" title="Debug Videos" style="margin-left: 10px; background: rgba(255,0,0,0.7);">
+                        🔍
+                    </button>
+                </div>
+                
+                <!-- Bottom controls -->
+                <div class="bottom-controls">
+                    <button id="capture-button" class="btn-capture">
+                        <img src="images/ui-capture.svg" alt="Capture">
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Results screen -->
+        <div id="results-screen" class="results-screen hidden">
+            <div class="results-content">
+                <img id="captured-image" class="captured-image" alt="Captured photo">
+                <div class="results-actions">
+                    <button id="download-button" class="btn-primary">Download Photo</button>
+                    <button id="share-button" class="btn-secondary hidden">Share Photo</button>
+                    <button id="take-another" class="btn-secondary">Take Another</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading indicator -->
+    <div id="loading" class="loading hidden">
+        <div class="spinner"></div>
+        <p>Preparing camera...</p>
+    </div>
+
+    <script src="js/script.js"></script>
+</body>
+</html>

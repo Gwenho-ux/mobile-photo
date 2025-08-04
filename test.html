@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        video { width: 100%; max-width: 400px; border: 1px solid #ccc; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; }
+        .debug { background: #f0f0f0; padding: 10px; margin: 10px 0; font-family: monospace; }
+    </style>
+</head>
+<body>
+    <h1>Video Test Page</h1>
+    
+    <div class="debug" id="debug-info">Loading...</div>
+    
+    <div class="test-section">
+        <h2>iOS Transparent Video Test</h2>
+        <video controls>
+            <source src="videos/ios/Idle-transparent-vt.mp4" type="video/mp4">
+            Your browser does not support the video tag.
+        </video>
+    </div>
+    
+    <div class="test-section">
+        <h2>iOS Regular Video Test</h2>
+        <video controls>
+            <source src="videos/ios/Idle.mp4" type="video/mp4">
+            Your browser does not support the video tag.
+        </video>
+    </div>
+    
+    <div class="test-section">
+        <h2>Android Video Test</h2>
+        <video controls>
+            <source src="videos/android /idle.webm" type="video/webm">
+            Your browser does not support the video tag.
+        </video>
+    </div>
+    
+    <div class="test-section">
+        <h2>Fallback Image Test</h2>
+        <img src="images/fallback.png" alt="Fallback" style="max-width: 200px;">
+    </div>
+
+    <script>
+        // Device detection
+        const userAgent = navigator.userAgent;
+        const isIOS = /iPad|iPhone|iPod/.test(userAgent) || 
+                     (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+        const isAndroid = /Android/.test(userAgent);
+        
+        document.getElementById('debug-info').innerHTML = `
+            <strong>Device Info:</strong><br>
+            User Agent: ${userAgent}<br>
+            Is iOS: ${isIOS}<br>
+            Is Android: ${isAndroid}<br>
+            Platform: ${navigator.platform}<br>
+            Touch Points: ${navigator.maxTouchPoints}
+        `;
+        
+        // Test video support
+        const video = document.createElement('video');
+        const mp4Support = video.canPlayType('video/mp4; codecs="hvc1"');
+        const webmSupport = video.canPlayType('video/webm; codecs="vp9"');
+        
+        console.log('Video support:', { mp4Support, webmSupport });
+    </script>
+</body>
+</html>

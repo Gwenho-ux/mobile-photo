@@ -1,0 +1,548 @@
+/* Reset and base styles */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: #000;
+    color: #fff;
+    overflow: hidden;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    -webkit-user-select: none;
+    user-select: none;
+}
+
+/* Orientation warning */
+.orientation-warning {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: #000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.warning-content {
+    text-align: center;
+    padding: 2rem;
+}
+
+.warning-content h2 {
+    font-size: 4rem;
+    margin-bottom: 1rem;
+}
+
+.warning-content p {
+    font-size: 1.2rem;
+    opacity: 0.8;
+}
+
+/* Main app container */
+.app-container {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+    height: 100dvh; /* Dynamic viewport height for mobile */
+    overflow: hidden;
+}
+
+/* Screen layouts */
+.permission-screen,
+.camera-screen,
+.results-screen {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Permission screen */
+.permission-screen {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 2rem;
+}
+
+.permission-content h1 {
+    font-size: 2.5rem;
+    margin-bottom: 1rem;
+}
+
+.permission-content p {
+    font-size: 1.1rem;
+    opacity: 0.9;
+    margin-bottom: 2rem;
+    max-width: 300px;
+}
+
+/* Camera screen */
+.camera-screen {
+    background: #000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px; /* Add some padding for mobile */
+}
+
+/* Camera container with 3:4 aspect ratio - Mobile First */
+.camera-container {
+    position: relative;
+    width: 100%; /* Full width on mobile */
+    aspect-ratio: 3/4; /* Force 3:4 aspect ratio (portrait) */
+    max-height: 100vh; /* Full height if needed */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #000;
+}
+
+/* Desktop - Enable camera for testing (temporary) */
+@media (min-width: 768px) {
+    .camera-container {
+        display: flex; /* Enable camera on desktop for testing */
+        max-width: 400px; /* Limit width for better desktop viewing */
+        margin: 0 auto; /* Center the camera container */
+    }
+}
+
+/* Mobile - Full width camera */
+@media (max-width: 767px) {
+    .camera-container {
+        width: 100%;
+        margin: 0;
+        border-radius: 0; /* No border radius on mobile for full screen */
+    }
+    
+    .camera-screen {
+        padding: 0; /* Remove padding on mobile */
+    }
+}
+
+/* Camera video - sized to fit inside frame */
+#camera-video {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 90%;
+    height: 90%;
+    object-fit: cover; /* Fill container, crop if needed to maintain 3:4 */
+    object-position: center; /* Center the video in the container */
+    transform: translate(-50%, -50%) scaleX(-1); /* Center and mirror for front camera */
+    border-radius: 5px; /* Slight rounding to match frame style */
+}
+
+/* Mobile - Camera video fills full width */
+@media (max-width: 767px) {
+    #camera-video {
+        width: 100%;
+        height: 100%;
+        object-fit: cover; /* Fill container vertically */
+        object-position: center; /* Center the video */
+        border-radius: 0; /* No border radius for full screen */
+    }
+}
+
+/* iOS Safari specific fixes for camera orientation */
+@media (max-width: 767px) and (orientation: portrait) {
+    #camera-video {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        object-position: center;
+        /* Ensure vertical fill on portrait devices */
+        min-height: 100%;
+    }
+}
+
+/* Mobile - Character overlay and frame adjustments */
+@media (max-width: 767px) {
+    .character-overlay {
+        width: 100%;
+        height: 100%;
+        border-radius: 0;
+        /* Ensure overlay is on top of camera video */
+        z-index: 15;
+    }
+    
+    .custom-frame {
+        width: 100%;
+        height: 100%;
+    }
+}
+
+/* Character overlay - sized to match camera video */
+.character-overlay {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    pointer-events: none;
+    z-index: 15;
+    transform: translate(-50%, -50%);
+    border-radius: 5px;
+}
+
+#character-overlay {
+    mix-blend-mode: normal;
+}
+
+/* Custom frame with white border - wrapping around camera video area */
+.custom-frame {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 100%;
+    height: 100%;
+    border: 10px solid white;
+    pointer-events: none;
+    z-index: 15;
+    box-sizing: border-box;
+    transform: translate(-50%, -50%);
+}
+
+/* Logo positioning - top left with 10% spacing from frame border */
+.frame-logo {
+    position: absolute;
+    top: 10%;
+    left: 10%;
+    max-width: 60px;
+    max-height: 40px;
+    object-fit: contain;
+    z-index: 16;
+}
+
+/* QR code positioning - bottom right from frame border */
+.frame-qrcode {
+    position: absolute;
+    bottom: 10px;
+    right: 10px;
+    width: 50px;
+    height: 50px;
+    object-fit: contain;
+    z-index: 16;
+}
+
+/* Countdown overlay */
+.countdown-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 25;
+}
+
+.countdown-number {
+    font-size: 120px;
+    font-weight: bold;
+    color: white;
+    text-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
+    animation: countdownPulse 1s ease-in-out;
+}
+
+@keyframes countdownPulse {
+    0% {
+        transform: scale(0.5);
+        opacity: 0;
+    }
+    50% {
+        transform: scale(1.2);
+        opacity: 1;
+    }
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+/* Controls */
+.controls {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    pointer-events: none;
+    z-index: 20;
+}
+
+.top-controls {
+    position: absolute;
+    top: env(safe-area-inset-top, 20px);
+    left: 20px;
+    right: 20px;
+    display: flex;
+    justify-content: flex-end;
+    pointer-events: auto;
+}
+
+.bottom-controls {
+    position: absolute;
+    bottom: env(safe-area-inset-bottom, 40px);
+    left: 20px;
+    right: 20px;
+    display: flex;
+    justify-content: center;
+    pointer-events: auto;
+}
+
+/* Buttons */
+.btn-primary,
+.btn-secondary {
+    background: #007AFF;
+    color: white;
+    border: none;
+    border-radius: 25px;
+    padding: 15px 30px;
+    font-size: 1.1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    min-width: 200px;
+}
+
+.btn-primary:hover,
+.btn-primary:active {
+    background: #0056CC;
+    transform: scale(0.98);
+}
+
+.btn-secondary {
+    background: transparent;
+    border: 2px solid #007AFF;
+    margin-top: 15px;
+}
+
+.btn-secondary:hover,
+.btn-secondary:active {
+    background: #007AFF;
+}
+
+.btn-icon {
+    background: rgba(255, 255, 255, 0.2);
+    border: none;
+    border-radius: 50%;
+    width: 50px;
+    height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    backdrop-filter: blur(10px);
+    transition: all 0.2s ease;
+}
+
+.btn-icon:hover,
+.btn-icon:active {
+    background: rgba(255, 255, 255, 0.3);
+    transform: scale(0.95);
+}
+
+.btn-icon img {
+    width: 24px;
+    height: 24px;
+    filter: invert(1);
+}
+
+.btn-capture {
+    background: #FF3B30;
+    border: 4px solid white;
+    border-radius: 50%;
+    width: 80px;
+    height: 80px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.btn-capture:hover,
+.btn-capture:active {
+    background: #D70015;
+    transform: scale(0.95);
+}
+
+.btn-capture img {
+    width: 32px;
+    height: 32px;
+    filter: invert(1);
+}
+
+/* Results screen */
+.results-screen {
+    background: #000;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+}
+
+.results-content {
+    text-align: center;
+    max-width: 100%;
+}
+
+.captured-image {
+    max-width: 90%;
+    max-height: 60vh;
+    border-radius: 15px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    margin-bottom: 2rem;
+}
+
+.results-actions {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+}
+
+/* Loading indicator */
+.loading {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.8);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+}
+
+.spinner {
+    width: 40px;
+    height: 40px;
+    border: 4px solid rgba(255, 255, 255, 0.3);
+    border-top: 4px solid #007AFF;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-bottom: 1rem;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Utility classes */
+.hidden {
+    display: none !important;
+}
+
+/* Landscape orientation handling */
+@media screen and (orientation: landscape) and (max-height: 600px) {
+    .app-container {
+        display: none;
+    }
+    
+    .orientation-warning {
+        display: flex !important;
+    }
+}
+
+/* iOS Safari specific adjustments */
+@supports (-webkit-touch-callout: none) {
+    .app-container {
+        height: -webkit-fill-available;
+    }
+}
+
+/* High DPI screens */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+    .captured-image {
+        image-rendering: -webkit-optimize-contrast;
+        image-rendering: crisp-edges;
+    }
+}
+
+/* Accessibility */
+@media (prefers-reduced-motion: reduce) {
+    * {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
+/* Focus styles for keyboard navigation */
+button:focus {
+    outline: 2px solid #007AFF;
+    outline-offset: 2px;
+}
+
+/* Touch targets */
+@media (pointer: coarse) {
+    .btn-icon {
+        width: 60px;
+        height: 60px;
+    }
+    
+    .btn-capture {
+        width: 90px;
+        height: 90px;
+    }
+}
+
+/* Desktop Message - "Use Mobile to Open" */
+.desktop-message {
+    display: none; /* Hidden by default */
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    text-align: center;
+    padding: 2rem;
+}
+
+.desktop-message h1 {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    font-weight: 300;
+}
+
+.desktop-message p {
+    font-size: 1.5rem;
+    margin-bottom: 2rem;
+    opacity: 0.9;
+}
+
+.mobile-icon {
+    font-size: 4rem;
+    margin-bottom: 2rem;
+    opacity: 0.8;
+}
+
+/* Hide desktop message for testing (temporary) */
+@media (min-width: 768px) {
+    .desktop-message {
+        display: none; /* Hidden for camera testing */
+    }
+}
