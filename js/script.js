@@ -518,7 +518,7 @@ class PhotoBoothApp {
         try {
             console.log('📸 Starting photo capture sequence...');
 
-            // Phase 1: Play pose instruction video (2 seconds)
+            // Phase 1: Play pose instruction video immediately
             await this.playPoseInstruction();
 
             // Phase 2: Show countdown (3 seconds)
@@ -541,7 +541,7 @@ class PhotoBoothApp {
     }
 
     /**
-     * Phase 1: Play pose instruction video (2 seconds) and keep it playing during countdown
+     * Phase 1: Play pose instruction video immediately and keep it playing during countdown
      */
     async playPoseInstruction() {
         console.log('🎭 Phase 1: Playing pose instruction and setup for countdown');
@@ -620,15 +620,15 @@ class PhotoBoothApp {
                 poseVideo.play().catch(e => console.warn('Failed to restart pose video:', e));
             });
 
-            // Play video and resolve after 2 seconds (pose video keeps playing for countdown)
+            // Play video and resolve immediately (pose video keeps playing for countdown)
             poseVideo.addEventListener('loadeddata', () => {
                 poseVideo.play().then(() => {
                     console.log('✅ Pose video started and will continue through countdown');
-                    // Resolve after 2 seconds but keep video playing
+                    // Resolve immediately but keep video playing
                     setTimeout(() => {
                         console.log('✅ Phase 1 complete - pose instruction shown, keeping video for countdown');
                         resolve();
-                    }, 2000);
+                    }, 0);
                 }).catch(() => {
                     console.warn('Pose instruction video failed to play');
                     resolve();
