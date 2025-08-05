@@ -38,13 +38,21 @@ class PhotoBoothApp {
             isCapturing: false,
             capturedImageData: null,
             supportsTransparentVideo: false,
-            currentPoseVideo: null
+            currentPoseVideo: null,
+            videosLoaded: false,
+            loadingRetries: 0
         };
 
         // Pose videos will be set after device detection
         this.poseVideos = [];
+        
+        // Video cache for preloading
+        this.videoCache = new Map();
 
         this.init();
+        
+        // Start periodic cleanup for video performance
+        this.startPeriodicCleanup();
     }
 
     /**
@@ -149,6 +157,9 @@ class PhotoBoothApp {
         const useIOS = (isIOS && isMobile) || (!isMobile && !isAndroid); // iOS mobile OR desktop get iOS videos
         const useAndroid = isAndroid; // Only Android gets Android videos
         this.setupIdleVideo(useIOS, useAndroid);
+        
+        // Preload all videos for better performance
+        this.preloadVideos();
 
         if (!this.state.supportsTransparentVideo) {
             console.log('Using static overlay for transparency');
@@ -161,6 +172,13 @@ class PhotoBoothApp {
      */
     setupIdleVideo(isIOS, isAndroid) {
         const characterOverlay = this.elements.characterOverlay;
+
+        // Enhanced video attributes for better performance
+        characterOverlay.setAttribute('preload', 'auto');
+        characterOverlay.setAttribute('muted', 'true');
+        characterOverlay.setAttribute('playsinline', 'true');
+        characterOverlay.setAttribute('webkit-playsinline', 'true');
+        characterOverlay.setAttribute('loop', 'true');
 
         // Clear existing sources
         characterOverlay.innerHTML = '';
@@ -199,26 +217,212 @@ class PhotoBoothApp {
         // Reload video element to pick up new source
         characterOverlay.load();
 
-        // Simple autoplay after loading
-        characterOverlay.addEventListener('loadeddata', () => {
-            console.log('📱 Character overlay loaded, attempting autoplay...');
-            characterOverlay.play().then(() => {
-                console.log('✅ Character overlay autoplay successful');
-            }).catch(error => {
-                console.warn('❌ Character overlay autoplay failed:', error);
-                console.log('📱 Click anywhere to start video...');
-            });
-        }, { once: true });
+        // Enhanced loading with retry mechanism
+        this.setupVideoLoadingWithRetry(characterOverlay, 'idle');
+    }
 
-        // Add error handler
-        characterOverlay.addEventListener('error', (e) => {
-            console.error('❌ Character overlay error:', e);
-        });
+    /**
+     * Setup video loading with retry mechanism and better error handling
+     */
+    setupVideoLoadingWithRetry(videoElement, videoType, maxRetries = 3) {
+        let retryCount = 0;
+
+        const attemptLoad = () => {
+            videoElement.addEventListener('loadeddata', () => {
+                console.log(`📱 ${videoType} video loaded successfully, attempting autoplay...`);
+                this.state.videosLoaded = true;
+                
+                videoElement.play().then(() => {
+                    console.log(`✅ ${videoType} video autoplay successful`);
+                    retryCount = 0; // Reset retry count on success
+                }).catch(error => {
+                    console.warn(`❌ ${videoType} video autoplay failed:`, error);
+                    if (retryCount < maxRetries) {
+                        retryCount++;
+                        console.log(`🔄 Retrying ${videoType} video playback (${retryCount}/${maxRetries})`);
+                        setTimeout(() => videoElement.play().catch(() => {}), 500);
+                    } else {
+                        console.log('📱 Click anywhere to start video...');
+                        this.addVideoPlaybackHandler(videoElement);
+                    }
+                });
+            }, { once: true });
+
+            // Enhanced error handler with retry
+            videoElement.addEventListener('error', (e) => {
+                console.error(`❌ ${videoType} video error:`, e);
+                if (retryCount < maxRetries) {
+                    retryCount++;
+                    console.log(`🔄 Retrying ${videoType} video load (${retryCount}/${maxRetries})`);
+                    setTimeout(() => {
+                        videoElement.load();
+                        attemptLoad();
+                    }, 1000);
+                } else {
+                    console.error(`💥 ${videoType} video failed after ${maxRetries} retries`);
+                    this.handleVideoFailure(videoElement, videoType);
+                }
+            }, { once: true });
+        };
+
+        attemptLoad();
 
         // Add debug info about video state
-        characterOverlay.addEventListener('play', () => console.log('▶️ Character overlay started playing'));
-        characterOverlay.addEventListener('pause', () => console.log('⏸️ Character overlay paused'));
-        characterOverlay.addEventListener('ended', () => console.log('🔄 Character overlay ended (should loop)'));
+        videoElement.addEventListener('play', () => console.log(`▶️ ${videoType} video started playing`));
+        videoElement.addEventListener('pause', () => console.log(`⏸️ ${videoType} video paused`));
+        videoElement.addEventListener('ended', () => console.log(`🔄 ${videoType} video ended (should loop)`));
+    }
+
+    /**
+     * Preload videos for better performance
+     */
+    async preloadVideos() {
+        console.log('🎬 Starting video preloading...');
+        const videoPaths = [
+            'videos/ios/idle.mov',
+            'videos/ios/pose1.mov',
+            'videos/ios/pose2.mov'
+        ];
+
+        const preloadPromises = videoPaths.map(path => this.preloadSingleVideo(path));
+        
+        try {
+            await Promise.allSettled(preloadPromises);
+            console.log('✅ Video preloading completed');
+        } catch (error) {
+            console.warn('⚠️ Some videos failed to preload:', error);
+        }
+    }
+
+    /**
+     * Preload a single video
+     */
+    preloadSingleVideo(videoPath) {
+        return new Promise((resolve, reject) => {
+            if (this.videoCache.has(videoPath)) {
+                resolve(this.videoCache.get(videoPath));
+                return;
+            }
+
+            const video = document.createElement('video');
+            video.setAttribute('preload', 'auto');
+            video.setAttribute('muted', 'true');
+            video.setAttribute('playsinline', 'true');
+            video.src = videoPath;
+
+            const onLoad = () => {
+                console.log(`📦 Preloaded: ${videoPath}`);
+                this.videoCache.set(videoPath, video);
+                cleanup();
+                resolve(video);
+            };
+
+            const onError = (error) => {
+                console.warn(`❌ Failed to preload: ${videoPath}`, error);
+                cleanup();
+                reject(error);
+            };
+
+            const cleanup = () => {
+                video.removeEventListener('loadeddata', onLoad);
+                video.removeEventListener('error', onError);
+            };
+
+            video.addEventListener('loadeddata', onLoad, { once: true });
+            video.addEventListener('error', onError, { once: true });
+
+            // Start loading
+            video.load();
+
+            // Timeout after 10 seconds
+            setTimeout(() => {
+                if (!this.videoCache.has(videoPath)) {
+                    cleanup();
+                    reject(new Error(`Timeout loading ${videoPath}`));
+                }
+            }, 10000);
+        });
+    }
+
+    /**
+     * Handle video failure gracefully
+     */
+    handleVideoFailure(videoElement, videoType) {
+        console.log(`🔧 Handling ${videoType} video failure`);
+        
+        // Hide the failed video element
+        videoElement.style.display = 'none';
+        
+        // Show fallback overlay if it's the character overlay
+        if (videoType === 'idle') {
+            this.setupFallbackOverlay();
+        }
+        
+        // For pose videos, we'll continue without the visual effect
+        if (videoType.includes('pose')) {
+            console.log('📸 Continuing capture without pose video effect');
+        }
+    }
+
+    /**
+     * Clean up video resources to prevent memory leaks
+     */
+    cleanupVideoResources() {
+        console.log('🧹 Cleaning up video resources...');
+        
+        // Clear video cache
+        this.videoCache.forEach((video, path) => {
+            video.src = '';
+            video.load();
+        });
+        this.videoCache.clear();
+        
+        // Reset video elements
+        const videoElements = document.querySelectorAll('video');
+        videoElements.forEach(video => {
+            if (video !== this.elements.cameraVideo) { // Don't touch camera video
+                video.pause();
+                video.currentTime = 0;
+            }
+        });
+        
+        console.log('✅ Video cleanup completed');
+    }
+
+    /**
+     * Start periodic cleanup to maintain performance
+     */
+    startPeriodicCleanup() {
+        // Clean up every 2 minutes to prevent memory accumulation
+        setInterval(() => {
+            // Only cleanup if not currently capturing
+            if (!this.state.isCapturing && this.state.videosLoaded) {
+                console.log('🧹 Performing periodic video cleanup...');
+                
+                // Force garbage collection on idle video if it's having issues
+                const idleVideo = this.elements.characterOverlay;
+                if (idleVideo && (idleVideo.error || idleVideo.networkState === 3)) {
+                    console.log('🔧 Reloading problematic idle video');
+                    idleVideo.load();
+                }
+                
+                // Clean up any orphaned video elements
+                const allVideos = document.querySelectorAll('video');
+                allVideos.forEach(video => {
+                    if (video !== this.elements.cameraVideo && 
+                        video !== this.elements.characterOverlay && 
+                        video !== this.state.currentPoseVideo &&
+                        !video.parentNode) {
+                        // Remove orphaned video elements
+                        if (video.parentNode) {
+                            video.parentNode.removeChild(video);
+                        }
+                    }
+                });
+                
+                console.log('✅ Periodic cleanup completed');
+            }
+        }, 120000); // Every 2 minutes
     }
 
     /**
@@ -558,8 +762,38 @@ class PhotoBoothApp {
             console.log('🎯 Pose options (filtered):', poseOptions);
             console.log('🎯 Selected pose:', randomPose);
 
-            // Create pose instruction video element
-            const poseVideo = document.createElement('video');
+            // Determine video path
+            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+                (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+            const isAndroid = /Android/.test(navigator.userAgent);
+            const isMobile = isIOS || isAndroid || /Mobile|webOS|BlackBerry|Opera Mini|IEMobile|Windows Phone/.test(navigator.userAgent);
+            const useIOSVideo = (isIOS && isMobile) || (!isMobile && !isAndroid);
+            const videoPath = useIOSVideo ? `videos/${randomPose}.mov` : `videos/${randomPose}.webm`;
+
+            // Try to use preloaded video first, fallback to creating new element
+            let poseVideo = this.videoCache.get(videoPath);
+            
+            if (poseVideo) {
+                console.log('📦 Using preloaded pose video:', videoPath);
+                // Clone the preloaded video to avoid conflicts
+                poseVideo = poseVideo.cloneNode(true);
+            } else {
+                console.log('⚠️ Creating new pose video element (not preloaded):', videoPath);
+                poseVideo = document.createElement('video');
+                
+                // Enhanced video attributes for better performance
+                poseVideo.setAttribute('preload', 'auto');
+                poseVideo.setAttribute('muted', 'true');
+                poseVideo.setAttribute('playsinline', 'true');
+                poseVideo.setAttribute('webkit-playsinline', 'true');
+                
+                const source = document.createElement('source');
+                source.src = videoPath;
+                source.type = useIOSVideo ? 'video/quicktime' : 'video/webm; codecs=vp9';
+                poseVideo.appendChild(source);
+            }
+
+            // Configure video element
             poseVideo.className = 'character-overlay';
             poseVideo.style.zIndex = '20'; // Higher than base overlay
             poseVideo.style.display = 'block';
@@ -576,35 +810,19 @@ class PhotoBoothApp {
             poseVideo.style.transform = 'translate(-50%, -50%)';
             poseVideo.style.objectFit = 'contain';
 
-            // Add video source based on device type (desktop uses iOS for testing)
-            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
-                (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-            const isAndroid = /Android/.test(navigator.userAgent);
-            const isMobile = isIOS || isAndroid || /Mobile|webOS|BlackBerry|Opera Mini|IEMobile|Windows Phone/.test(navigator.userAgent);
-            const useIOSVideo = (isIOS && isMobile) || (!isMobile && !isAndroid);  // iOS mobile OR desktop gets MOV
-            const source = document.createElement('source');
-
-            if (useIOSVideo) {
-                // iOS mobile uses MOV files
-                source.src = `videos/${randomPose}.mov`;
-                source.type = 'video/quicktime';
-            } else {
-                // Android uses WebM
-                source.src = `videos/${randomPose}.webm`;
-                source.type = 'video/webm; codecs=vp9';
-            }
-
-            poseVideo.appendChild(source);
-
             console.log('🎭 Pose instruction:', {
                 pose: randomPose,
-                src: source.src,
+                src: videoPath,
+                preloaded: this.videoCache.has(videoPath),
                 format: useIOSVideo ? 'MOV' : 'WebM'
             });
 
             // Add to DOM
             this.elements.cameraVideo.parentNode.appendChild(poseVideo);
             this.state.currentPoseVideo = poseVideo;
+
+            // Enhanced event handlers for better reliability
+            this.setupVideoLoadingWithRetry(poseVideo, 'pose-instruction', 2);
 
             // Prevent video from pausing and ensure smooth playback
             poseVideo.addEventListener('pause', () => {
@@ -620,23 +838,54 @@ class PhotoBoothApp {
                 poseVideo.play().catch(e => console.warn('Failed to restart pose video:', e));
             });
 
-            // Play video and resolve immediately (pose video keeps playing for countdown)
-            poseVideo.addEventListener('loadeddata', () => {
-                poseVideo.play().then(() => {
-                    console.log('✅ Pose video started and will continue through countdown');
-                    // Resolve immediately but keep video playing
-                    setTimeout(() => {
-                        console.log('✅ Phase 1 complete - pose instruction shown, keeping video for countdown');
+            // Enhanced loading detection
+            const checkAndPlay = () => {
+                if (poseVideo.readyState >= 2) { // HAVE_CURRENT_DATA or higher
+                    poseVideo.play().then(() => {
+                        console.log('✅ Pose video started and will continue through countdown');
                         resolve();
-                    }, 0);
-                }).catch(() => {
-                    console.warn('Pose instruction video failed to play');
-                    resolve();
-                });
-            });
+                    }).catch((error) => {
+                        console.warn('Pose instruction video failed to play:', error);
+                        resolve();
+                    });
+                } else {
+                    // If video from cache, it should already be loaded
+                    if (this.videoCache.has(videoPath)) {
+                        console.log('📦 Cached video not ready, attempting play anyway');
+                        poseVideo.play().then(() => {
+                            console.log('✅ Cached pose video started');
+                            resolve();
+                        }).catch(() => {
+                            console.warn('❌ Cached pose video failed to play');
+                            resolve();
+                        });
+                    } else {
+                        // Wait for new video to load
+                        poseVideo.addEventListener('loadeddata', () => {
+                            poseVideo.play().then(() => {
+                                console.log('✅ New pose video loaded and started');
+                                resolve();
+                            }).catch(() => {
+                                console.warn('❌ New pose video failed to play');
+                                resolve();
+                            });
+                        }, { once: true });
+                        
+                        // Fallback timeout
+                        setTimeout(() => {
+                            console.warn('⏰ Pose video loading timeout');
+                            resolve();
+                        }, 2000);
+                    }
+                }
+            };
 
+            // Start the process
+            setTimeout(checkAndPlay, 50);
+
+            // Error fallback
             poseVideo.addEventListener('error', () => {
-                console.warn('Pose instruction video failed to load');
+                console.warn('❌ Pose instruction video failed to load');
                 resolve();
             });
 
