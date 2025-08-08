@@ -277,15 +277,15 @@ class PhotoBoothApp {
         videoElement.addEventListener('ended', () => console.log(`🔄 ${videoType} video ended (should loop)`));
     }
 
-        /**
-     * Start progressive video loading: critical videos first, then background loading
-     */
+    /**
+ * Start progressive video loading: critical videos first, then background loading
+ */
     async startProgressiveLoading() {
         console.log('🚀 Starting progressive video loading...');
-        
+
         // Phase 1: Load critical videos (idle + 1 random pose)
         await this.loadCriticalVideos();
-        
+
         // Phase 2: Background load remaining videos
         this.loadRemainingVideos();
     }
@@ -295,36 +295,36 @@ class PhotoBoothApp {
      */
     async loadCriticalVideos() {
         console.log('⚡ Phase 1: Loading critical videos...');
-        
+
         const idlePath = 'videos/ios/idle.mov';
-        
+
         // Get pose video paths (skip idle)
         const poseOptions = this.poseVideos.filter(video => !video.includes('idle'));
-        
+
         // Randomly select one pose for priority loading
         this.state.priorityPose = poseOptions[Math.floor(Math.random() * poseOptions.length)];
         const priorityPosePath = `videos/${this.state.priorityPose}.mov`;
-        
+
         console.log('🎯 Priority pose selected:', this.state.priorityPose);
-        
+
         // Load critical videos in parallel
         const criticalPromises = [
             this.preloadSingleVideo(idlePath),
             this.preloadSingleVideo(priorityPosePath)
         ];
-        
+
         try {
             const results = await Promise.allSettled(criticalPromises);
-            
+
             // Track which poses loaded successfully
             if (results[1].status === 'fulfilled') {
                 this.state.loadedPoses.push(this.state.priorityPose);
                 console.log('✅ Priority pose loaded:', this.state.priorityPose);
             }
-            
+
             this.state.criticalVideosLoaded = true;
             console.log('🎉 Critical videos loaded! App ready for first capture.');
-            
+
         } catch (error) {
             console.warn('⚠️ Some critical videos failed to load:', error);
             this.state.criticalVideosLoaded = true; // Still mark as ready
@@ -336,29 +336,29 @@ class PhotoBoothApp {
      */
     async loadRemainingVideos() {
         console.log('📦 Phase 2: Background loading remaining videos...');
-        
+
         // Get all pose videos except the priority one
-        const poseOptions = this.poseVideos.filter(video => 
+        const poseOptions = this.poseVideos.filter(video =>
             !video.includes('idle') && video !== this.state.priorityPose
         );
-        
+
         // Load remaining poses one by one to avoid overwhelming the network
         for (const pose of poseOptions) {
             const posePath = `videos/${pose}.mov`;
-            
+
             try {
                 await this.preloadSingleVideo(posePath);
                 this.state.loadedPoses.push(pose);
                 console.log('📦 Background loaded pose:', pose);
-                
+
                 // Small delay to not overwhelm the network
                 await new Promise(resolve => setTimeout(resolve, 500));
-                
+
             } catch (error) {
                 console.warn(`⚠️ Failed to background load ${pose}:`, error);
             }
         }
-        
+
         this.state.videosLoaded = true;
         console.log('✅ All video loading completed! Loaded poses:', this.state.loadedPoses);
     }
@@ -461,41 +461,41 @@ class PhotoBoothApp {
     /**
      * Start periodic cleanup to maintain performance
      */
-        startPeriodicCleanup() {
+    startPeriodicCleanup() {
         // More frequent cleanup to prevent memory accumulation
         setInterval(() => {
             // Only cleanup if not currently capturing
             if (!this.state.isCapturing && this.state.criticalVideosLoaded) {
                 console.log('🧹 Performing periodic video maintenance...');
-                
+
                 // Enhanced idle video health check
                 const idleVideo = this.elements.characterOverlay;
                 if (idleVideo) {
                     // Check for various error states
-                    if (idleVideo.error || 
+                    if (idleVideo.error ||
                         idleVideo.networkState === 3 || // NETWORK_NO_SOURCE
                         idleVideo.readyState === 0 ||   // HAVE_NOTHING
                         (idleVideo.paused && !idleVideo.ended)) {
-                        
+
                         console.log('🔧 Refreshing problematic idle video');
                         idleVideo.load();
-                        
+
                         // Attempt to restart playback
                         setTimeout(() => {
-                            idleVideo.play().catch(e => 
+                            idleVideo.play().catch(e =>
                                 console.warn('Failed to restart idle video:', e)
                             );
                         }, 500);
                     }
                 }
-                
+
                 // Aggressive cleanup of orphaned elements
                 const allVideos = document.querySelectorAll('video');
                 allVideos.forEach(video => {
-                    if (video !== this.elements.cameraVideo && 
-                        video !== this.elements.characterOverlay && 
+                    if (video !== this.elements.cameraVideo &&
+                        video !== this.elements.characterOverlay &&
                         video !== this.state.currentPoseVideo) {
-                        
+
                         // Remove any disconnected or problematic videos
                         if (!video.parentNode || video.error || video.networkState === 3) {
                             try {
@@ -511,21 +511,21 @@ class PhotoBoothApp {
                         }
                     }
                 });
-                
+
                 console.log('✅ Periodic maintenance completed');
             }
         }, 60000); // Every 1 minute (more frequent)
-        
+
         // Additional memory optimization every 5 minutes
         setInterval(() => {
             if (!this.state.isCapturing && this.state.captureCount > 0) {
                 console.log('♻️ Deep memory optimization cycle...');
-                
+
                 // Force browser to clean up unused resources
                 if (window.gc) {
                     window.gc(); // Chrome dev tools garbage collection
                 }
-                
+
                 console.log(`📊 Current capture count: ${this.state.captureCount}`);
                 console.log(`📦 Loaded poses: ${this.state.loadedPoses.join(', ')}`);
             }
@@ -862,17 +862,17 @@ class PhotoBoothApp {
             this.elements.characterOverlay.style.display = 'none';
 
             // Smart pose selection: prefer loaded poses, fallback to any available
-            let poseOptions = this.state.loadedPoses.length > 0 
-                ? this.state.loadedPoses 
+            let poseOptions = this.state.loadedPoses.length > 0
+                ? this.state.loadedPoses
                 : this.poseVideos.filter(video => !video.includes('idle'));
-            
+
             // If no poses are loaded yet, use priority pose if available
             if (poseOptions.length === 0 && this.state.priorityPose) {
                 poseOptions = [this.state.priorityPose];
             }
-            
+
             const randomPose = poseOptions[Math.floor(Math.random() * poseOptions.length)];
-            
+
             console.log('🎯 Pose selection:', {
                 loadedPoses: this.state.loadedPoses,
                 priorityPose: this.state.priorityPose,
@@ -1242,27 +1242,27 @@ class PhotoBoothApp {
                 this.state.currentPoseVideo.pause();
                 this.state.currentPoseVideo.currentTime = 0;
                 this.state.currentPoseVideo.src = '';
-                
+
                 // Remove from DOM
                 if (this.state.currentPoseVideo.parentNode) {
                     this.state.currentPoseVideo.parentNode.removeChild(this.state.currentPoseVideo);
                 }
-                
+
                 this.state.currentPoseVideo = null;
                 console.log('🧹 Enhanced cleanup: pose video resources freed');
             } catch (error) {
                 console.warn('Failed to cleanup pose video:', error);
             }
         }
-        
+
         // Clean up any orphaned pose videos (memory leak prevention)
         const allVideos = document.querySelectorAll('video');
         allVideos.forEach(video => {
             // Remove any video that's not the camera video or idle overlay
-            if (video !== this.elements.cameraVideo && 
+            if (video !== this.elements.cameraVideo &&
                 video !== this.elements.characterOverlay &&
                 video.className.includes('character-overlay')) {
-                
+
                 try {
                     video.pause();
                     video.currentTime = 0;
@@ -1276,11 +1276,11 @@ class PhotoBoothApp {
                 }
             }
         });
-        
+
         // Increment capture count for monitoring
         this.state.captureCount++;
         console.log(`📊 Capture #${this.state.captureCount} - Memory cleanup completed`);
-        
+
         // Force garbage collection hint every 5 captures
         if (this.state.captureCount % 5 === 0) {
             console.log('🗑️ Capture milestone reached, suggesting garbage collection');
