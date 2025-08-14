@@ -12,6 +12,8 @@ class PhotoBoothApp {
             resultsScreen: document.getElementById('results-screen'),
             orientationWarning: document.getElementById('orientation-warning'),
             loading: document.getElementById('loading'),
+            desktopMessage: document.getElementById('desktop-message'),
+            mobileUrl: document.getElementById('mobile-url'),
 
             startCameraBtn: document.getElementById('start-camera'),
             flipCameraBtn: document.getElementById('flip-camera'),
@@ -156,9 +158,13 @@ class PhotoBoothApp {
             supportsTransparentVideo: this.state.supportsTransparentVideo
         });
 
-        // Add visual indicator for desktop testing
+        // Handle desktop vs mobile display
         if (!isMobile) {
-            console.log('💻 DESKTOP TESTING MODE: Using iOS MOV videos for testing');
+            console.log('💻 DESKTOP DEVICE: Showing mobile redirect message');
+            this.showDesktopMessage();
+        } else {
+            console.log('📱 MOBILE DEVICE: Proceeding with photo booth app');
+            this.hideDesktopMessage();
         }
 
         // No idle video in simplified flow - character overlay starts hidden
@@ -1425,6 +1431,33 @@ class PhotoBoothApp {
      */
     hideLoading() {
         this.elements.loading.classList.add('hidden');
+    }
+
+    /**
+     * Show desktop message for non-mobile devices
+     */
+    showDesktopMessage() {
+        if (this.elements.desktopMessage) {
+            this.elements.desktopMessage.classList.add('show');
+            
+            // Update URL with current local IP if available
+            const currentURL = window.location.href;
+            if (this.elements.mobileUrl && currentURL.includes('192.168.0.196:8443')) {
+                this.elements.mobileUrl.textContent = currentURL;
+            }
+            
+            console.log('🖥️ Desktop message displayed');
+        }
+    }
+
+    /**
+     * Hide desktop message for mobile devices
+     */
+    hideDesktopMessage() {
+        if (this.elements.desktopMessage) {
+            this.elements.desktopMessage.classList.remove('show');
+            console.log('📱 Desktop message hidden');
+        }
     }
 }
 

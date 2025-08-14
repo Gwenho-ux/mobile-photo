@@ -637,15 +637,21 @@ button:focus {
 
 /* Desktop Message - "Use Mobile to Open" */
 .desktop-message {
-    display: none; /* Hidden by default */
+    display: none; /* Hidden by default, controlled by JavaScript */
     flex-direction: column;
     align-items: center;
     justify-content: center;
     height: 100vh;
-    background: transparent;
+    background: rgba(0, 0, 0, 0.8);
     color: white;
     text-align: center;
     padding: 2rem;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 1000;
 }
 
 .desktop-message h1 {
@@ -666,9 +672,9 @@ button:focus {
     opacity: 0.8;
 }
 
-/* Hide desktop message for testing (temporary) */
+/* Show desktop message on desktop devices */
 @media (min-width: 768px) {
-    .desktop-message {
-        display: none; /* Hidden for camera testing */
+    .desktop-message.show {
+        display: flex; /* Show when triggered by JavaScript */
     }
 }
