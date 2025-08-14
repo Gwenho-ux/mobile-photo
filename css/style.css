@@ -677,4 +677,11 @@ button:focus {
     .desktop-message.show {
         display: flex; /* Show when triggered by JavaScript */
     }
+    
+    /* Hide all other app content when desktop message is shown */
+    .desktop-message.show ~ .permission-screen,
+    .desktop-message.show ~ .camera-screen,
+    .desktop-message.show ~ .results-screen {
+        display: none !important;
+    }
 }
