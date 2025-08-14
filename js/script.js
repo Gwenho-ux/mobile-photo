@@ -53,6 +53,10 @@ class PhotoBoothApp {
         // Video cache for preloading
         this.videoCache = new Map();
 
+        // New simplified flow state
+        this.state.poseVideoPlaying = false;
+        this.state.poseVideoEnded = false;
+
         this.init();
 
         // Start periodic cleanup for video performance
@@ -120,25 +124,25 @@ class PhotoBoothApp {
         console.log('🔧 DEBUG: isMobile=' + isMobile + ', isIOS=' + isIOS + ', isAndroid=' + isAndroid);
 
         if (isIOS && isMobile) {
-            // iOS mobile devices use MOV files for idle and posing
-            this.poseVideos = ['ios/idle', 'ios/pose1', 'ios/pose2'];  // Use available MOV files
+            // iOS mobile devices use MOV files for posing (no idle)
+            this.poseVideos = ['ios/pose1', 'ios/pose2'];  // Remove idle video
             this.state.supportsTransparentVideo = true;  // MOV supports transparency
             console.log('📱 iOS device detected - using MOV videos from ios folder');
         } else if (isAndroid) {
             // Android uses WebM videos, but fallback to iOS if WebM not supported
             if (webmSupport) {
-                this.poseVideos = ['android /idle', 'android /pose1', 'android /pose2'];
+                this.poseVideos = ['android /pose1', 'android /pose2'];  // Remove idle video
                 this.state.supportsTransparentVideo = true;
                 console.log('🤖 Android device detected - using WebM videos');
             } else {
                 // Fallback to iOS MOV files for Android if WebM not supported
-                this.poseVideos = ['ios/idle', 'ios/pose1', 'ios/pose2'];
+                this.poseVideos = ['ios/pose1', 'ios/pose2'];  // Remove idle video
                 this.state.supportsTransparentVideo = true;
                 console.log('🤖 Android device detected - WebM not supported, falling back to iOS MOV videos');
             }
         } else {
             // Desktop - Use iOS MOV files for testing
-            this.poseVideos = ['ios/idle', 'ios/pose1', 'ios/pose2'];
+            this.poseVideos = ['ios/pose1', 'ios/pose2'];  // Remove idle video
             this.state.supportsTransparentVideo = true;  // Assume MOV support on desktop
             console.log('💻 Desktop device detected - using iOS MOV videos for testing');
         }
@@ -157,12 +161,10 @@ class PhotoBoothApp {
             console.log('💻 DESKTOP TESTING MODE: Using iOS MOV videos for testing');
         }
 
-        // Set up idle character overlay video based on device detection
-        const useIOS = (isIOS && isMobile) || (!isMobile && !isAndroid); // iOS mobile OR desktop get iOS videos
-        const useAndroid = isAndroid; // Only Android gets Android videos
-        this.setupIdleVideo(useIOS, useAndroid);
+        // No idle video in simplified flow - character overlay starts hidden
+        this.elements.characterOverlay.style.display = 'none';
 
-        // Start progressive video loading (critical first, then background)
+        // Start progressive video loading (poses only)
         this.startProgressiveLoading();
 
         if (!this.state.supportsTransparentVideo) {
@@ -172,57 +174,16 @@ class PhotoBoothApp {
     }
 
     /**
-     * Setup idle character overlay video based on device type
+     * Initialize character overlay (hidden initially in simplified flow)
      */
-    setupIdleVideo(isIOS, isAndroid) {
+    setupCharacterOverlay() {
         const characterOverlay = this.elements.characterOverlay;
 
-        // Enhanced video attributes for better performance
-        characterOverlay.setAttribute('preload', 'auto');
-        characterOverlay.setAttribute('muted', 'true');
-        characterOverlay.setAttribute('playsinline', 'true');
-        characterOverlay.setAttribute('webkit-playsinline', 'true');
-        characterOverlay.setAttribute('loop', 'true');
+        // Keep character overlay hidden until pose video starts
+        characterOverlay.style.display = 'none';
+        characterOverlay.innerHTML = ''; // Clear any existing sources
 
-        // Clear existing sources
-        characterOverlay.innerHTML = '';
-
-        if (isIOS) {
-            // iOS: Use transparent MOV file
-            const source = document.createElement('source');
-            source.src = 'videos/ios/idle.mov';
-            source.type = 'video/quicktime';
-            characterOverlay.appendChild(source);
-            console.log('📱 iOS idle video configured (MOV):', source.src);
-
-        } else if (isAndroid) {
-            // Android: Try WebM first, then fallback to MOV
-            const webmSource = document.createElement('source');
-            webmSource.src = 'videos/android /idle.webm';
-            webmSource.type = 'video/webm; codecs=vp9';
-            characterOverlay.appendChild(webmSource);
-
-            // Fallback to iOS MOV for Android compatibility
-            const movSource = document.createElement('source');
-            movSource.src = 'videos/ios/idle.mov';
-            movSource.type = 'video/quicktime';
-            characterOverlay.appendChild(movSource);
-
-            console.log('🤖 Android idle video configured with WebM and MOV fallback');
-        } else {
-            // Desktop: Use WebM from android folder  
-            const source = document.createElement('source');
-            source.src = 'videos/android /idle.webm';
-            source.type = 'video/webm; codecs=vp9';
-            characterOverlay.appendChild(source);
-            console.log('💻 Desktop idle video configured (Android style):', source.src);
-        }
-
-        // Reload video element to pick up new source
-        characterOverlay.load();
-
-        // Enhanced loading with retry mechanism
-        this.setupVideoLoadingWithRetry(characterOverlay, 'idle');
+        console.log('🎬 Simplified flow: Character overlay initialized (hidden)');
     }
 
     /**
@@ -291,60 +252,64 @@ class PhotoBoothApp {
     }
 
     /**
-     * Phase 1: Load critical videos for immediate use
+     * Phase 1: Load critical videos for immediate use (poses only)
      */
     async loadCriticalVideos() {
-        console.log('⚡ Phase 1: Loading critical videos...');
+        console.log('⚡ Phase 1: Loading critical videos (poses only)...');
 
-        const idlePath = 'videos/ios/idle.mov';
-
-        // Get pose video paths (skip idle)
-        const poseOptions = this.poseVideos.filter(video => !video.includes('idle'));
+        // Get all pose videos (no idle in simplified flow)
+        const poseOptions = this.poseVideos;
 
         // Randomly select one pose for priority loading
         this.state.priorityPose = poseOptions[Math.floor(Math.random() * poseOptions.length)];
-        const priorityPosePath = `videos/${this.state.priorityPose}.mov`;
+
+        // Determine video extension based on device
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+            (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+        const isAndroid = /Android/.test(navigator.userAgent);
+        const isMobile = isIOS || isAndroid || /Mobile|webOS|BlackBerry|Opera Mini|IEMobile|Windows Phone/.test(navigator.userAgent);
+        const useIOSVideo = (isIOS && isMobile) || (!isMobile && !isAndroid);
+        const videoExt = useIOSVideo ? '.mov' : '.webm';
+
+        const priorityPosePath = `videos/${this.state.priorityPose}${videoExt}`;
 
         console.log('🎯 Priority pose selected:', this.state.priorityPose);
 
-        // Load critical videos in parallel
-        const criticalPromises = [
-            this.preloadSingleVideo(idlePath),
-            this.preloadSingleVideo(priorityPosePath)
-        ];
-
         try {
-            const results = await Promise.allSettled(criticalPromises);
-
-            // Track which poses loaded successfully
-            if (results[1].status === 'fulfilled') {
-                this.state.loadedPoses.push(this.state.priorityPose);
-                console.log('✅ Priority pose loaded:', this.state.priorityPose);
-            }
+            // Load priority pose video
+            await this.preloadSingleVideo(priorityPosePath);
+            this.state.loadedPoses.push(this.state.priorityPose);
+            console.log('✅ Priority pose loaded:', this.state.priorityPose);
 
             this.state.criticalVideosLoaded = true;
             console.log('🎉 Critical videos loaded! App ready for first capture.');
 
         } catch (error) {
-            console.warn('⚠️ Some critical videos failed to load:', error);
+            console.warn('⚠️ Priority pose failed to load:', error);
             this.state.criticalVideosLoaded = true; // Still mark as ready
         }
     }
 
     /**
-     * Phase 2: Background load remaining videos
+     * Phase 2: Background load remaining videos (poses only)
      */
     async loadRemainingVideos() {
         console.log('📦 Phase 2: Background loading remaining videos...');
 
         // Get all pose videos except the priority one
-        const poseOptions = this.poseVideos.filter(video =>
-            !video.includes('idle') && video !== this.state.priorityPose
-        );
+        const poseOptions = this.poseVideos.filter(video => video !== this.state.priorityPose);
+
+        // Determine video extension based on device
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+            (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+        const isAndroid = /Android/.test(navigator.userAgent);
+        const isMobile = isIOS || isAndroid || /Mobile|webOS|BlackBerry|Opera Mini|IEMobile|Windows Phone/.test(navigator.userAgent);
+        const useIOSVideo = (isIOS && isMobile) || (!isMobile && !isAndroid);
+        const videoExt = useIOSVideo ? '.mov' : '.webm';
 
         // Load remaining poses one by one to avoid overwhelming the network
         for (const pose of poseOptions) {
-            const posePath = `videos/${pose}.mov`;
+            const posePath = `videos/${pose}${videoExt}`;
 
             try {
                 await this.preloadSingleVideo(posePath);
@@ -422,9 +387,9 @@ class PhotoBoothApp {
         // Hide the failed video element
         videoElement.style.display = 'none';
 
-        // Show fallback overlay if it's the character overlay
-        if (videoType === 'idle') {
-            this.setupFallbackOverlay();
+        // Show fallback overlay if it's the character overlay (no idle in simplified flow)
+        if (videoType === 'pose') {
+            console.log('🎬 Pose video failed, continuing without overlay');
         }
 
         // For pose videos, we'll continue without the visual effect
@@ -468,24 +433,25 @@ class PhotoBoothApp {
             if (!this.state.isCapturing && this.state.criticalVideosLoaded) {
                 console.log('🧹 Performing periodic video maintenance...');
 
-                // Enhanced idle video health check
-                const idleVideo = this.elements.characterOverlay;
-                if (idleVideo) {
+                // Simplified flow: Check current pose video health instead of idle
+                const poseVideo = this.state.currentPoseVideo;
+                if (poseVideo && this.state.poseVideoPlaying) {
                     // Check for various error states
-                    if (idleVideo.error ||
-                        idleVideo.networkState === 3 || // NETWORK_NO_SOURCE
-                        idleVideo.readyState === 0 ||   // HAVE_NOTHING
-                        (idleVideo.paused && !idleVideo.ended)) {
+                    if (poseVideo.error ||
+                        poseVideo.networkState === 3 || // NETWORK_NO_SOURCE
+                        poseVideo.readyState === 0) {   // HAVE_NOTHING
 
-                        console.log('🔧 Refreshing problematic idle video');
-                        idleVideo.load();
+                        console.log('🔧 Refreshing problematic pose video');
+                        poseVideo.load();
 
-                        // Attempt to restart playback
-                        setTimeout(() => {
-                            idleVideo.play().catch(e =>
-                                console.warn('Failed to restart idle video:', e)
-                            );
-                        }, 500);
+                        // Attempt to restart playback if still playing
+                        if (!this.state.poseVideoEnded) {
+                            setTimeout(() => {
+                                poseVideo.play().catch(e =>
+                                    console.warn('Failed to restart pose video:', e)
+                                );
+                            }, 500);
+                        }
                     }
                 }
 
@@ -744,16 +710,18 @@ class PhotoBoothApp {
     }
 
     /**
-     * Request camera permission and start video stream
+     * Request camera permission and start video stream (simplified flow)
      */
     async requestCameraPermission() {
-        this.showLoading('Requesting camera access...');
+        this.showLoading('Starting camera and loading pose...');
 
         try {
             await this.startCamera();
             this.showScreen('camera');
-            // Force video visibility check for Safari
-            this.ensureVideoVisibility();
+
+            // In simplified flow, immediately play a random pose video
+            await this.playRandomPoseVideo();
+
         } catch (error) {
             console.error('Camera access denied or failed:', error);
             alert('Camera access is required for the Photo Booth. Please allow camera access and try again.');
@@ -817,7 +785,142 @@ class PhotoBoothApp {
     }
 
     /**
-     * Capture photo with pose instruction → countdown → capture sequence
+     * Play random pose video immediately when camera starts (simplified flow)
+     */
+    async playRandomPoseVideo() {
+        console.log('🎬 Starting simplified flow: random pose video');
+
+        // Smart pose selection: prefer loaded poses, fallback to any available
+        let poseOptions = this.state.loadedPoses.length > 0
+            ? this.state.loadedPoses
+            : this.poseVideos;
+
+        // If no poses are loaded yet, use priority pose if available
+        if (poseOptions.length === 0 && this.state.priorityPose) {
+            poseOptions = [this.state.priorityPose];
+        }
+
+        if (poseOptions.length === 0) {
+            console.warn('⚠️ No pose videos available');
+            return;
+        }
+
+        const randomPose = poseOptions[Math.floor(Math.random() * poseOptions.length)];
+        console.log('🎯 Selected pose:', randomPose);
+
+        // Determine video path based on device
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+            (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+        const isAndroid = /Android/.test(navigator.userAgent);
+        const isMobile = isIOS || isAndroid || /Mobile|webOS|BlackBerry|Opera Mini|IEMobile|Windows Phone/.test(navigator.userAgent);
+        const useIOSVideo = (isIOS && isMobile) || (!isMobile && !isAndroid);
+        const videoExt = useIOSVideo ? '.mov' : '.webm';
+        const videoPath = `videos/${randomPose}${videoExt}`;
+
+        // Try to use preloaded video first, fallback to creating new element
+        let poseVideo = this.videoCache.get(videoPath);
+
+        if (poseVideo) {
+            console.log('📦 Using preloaded pose video:', videoPath);
+            // Clone the preloaded video to avoid conflicts
+            poseVideo = poseVideo.cloneNode(true);
+        } else {
+            console.log('⚠️ Creating new pose video element (not preloaded):', videoPath);
+            poseVideo = document.createElement('video');
+
+            poseVideo.setAttribute('preload', 'auto');
+            poseVideo.setAttribute('muted', 'true');
+            poseVideo.setAttribute('playsinline', 'true');
+            poseVideo.setAttribute('webkit-playsinline', 'true');
+
+            const source = document.createElement('source');
+            source.src = videoPath;
+            source.type = useIOSVideo ? 'video/quicktime' : 'video/webm; codecs=vp9';
+            poseVideo.appendChild(source);
+        }
+
+        // Configure video element for simplified flow (NO LOOP - play once)
+        poseVideo.className = 'character-overlay';
+        poseVideo.style.zIndex = '15';
+        poseVideo.style.display = 'block';
+        poseVideo.muted = true;
+        poseVideo.playsInline = true;
+        poseVideo.loop = false; // IMPORTANT: Do not loop in simplified flow
+
+        // Positioning
+        poseVideo.style.position = 'absolute';
+        poseVideo.style.top = '50%';
+        poseVideo.style.left = '50%';
+        poseVideo.style.width = '100%';
+        poseVideo.style.height = '100%';
+        poseVideo.style.transform = 'translate(-50%, -50%)';
+        poseVideo.style.objectFit = 'contain';
+
+        // Add to DOM and set as current pose video
+        this.elements.cameraVideo.parentNode.appendChild(poseVideo);
+        this.state.currentPoseVideo = poseVideo;
+        this.state.poseVideoPlaying = true;
+        this.state.poseVideoEnded = false;
+
+        // Handle video end - freeze on last frame
+        poseVideo.addEventListener('ended', () => {
+            console.log('🎬 Pose video ended - frozen on last frame');
+            this.state.poseVideoPlaying = false;
+            this.state.poseVideoEnded = true;
+            // Video stays visible on last frame - do not remove or restart
+        });
+
+        // Handle video loading and play
+        return new Promise((resolve) => {
+            const playWhenReady = () => {
+                if (poseVideo.readyState >= 2) {
+                    poseVideo.play().then(() => {
+                        console.log('✅ Pose video started (will play once and freeze)');
+                        resolve();
+                    }).catch((error) => {
+                        console.warn('⚠️ Pose video failed to play:', error);
+                        resolve();
+                    });
+                } else {
+                    if (this.videoCache.has(videoPath)) {
+                        console.log('📦 Cached video not ready, attempting play anyway');
+                        poseVideo.play().then(() => {
+                            console.log('✅ Cached pose video started');
+                            resolve();
+                        }).catch(() => {
+                            console.warn('⚠️ Cached pose video failed to play');
+                            resolve();
+                        });
+                    } else {
+                        poseVideo.addEventListener('loadeddata', () => {
+                            poseVideo.play().then(() => {
+                                console.log('✅ New pose video loaded and started');
+                                resolve();
+                            }).catch(() => {
+                                console.warn('⚠️ New pose video failed to play');
+                                resolve();
+                            });
+                        }, { once: true });
+
+                        setTimeout(() => {
+                            console.warn('⏰ Pose video loading timeout');
+                            resolve();
+                        }, 3000);
+                    }
+                }
+            };
+
+            setTimeout(playWhenReady, 50);
+
+            poseVideo.addEventListener('error', () => {
+                console.warn('⚠️ Pose video failed to load');
+                resolve();
+            });
+        });
+    }
+
+    /**
+     * Simplified capture photo (no countdown, capture anytime)
      */
     async capturePhoto() {
         if (this.state.isCapturing) return;
@@ -827,16 +930,16 @@ class PhotoBoothApp {
         this.elements.captureBtn.disabled = true;
 
         try {
-            console.log('📸 Starting photo capture sequence...');
+            console.log('📸 Simplified capture: taking photo immediately');
 
-            // Phase 1: Play pose instruction video immediately
-            await this.playPoseInstruction();
+            // Flash effect
+            await this.showFlashEffect();
 
-            // Phase 2: Show countdown (3 seconds)
-            await this.startCountdown();
+            // Play shutter sound
+            this.playShutterSound();
 
-            // Phase 3: Capture with effects (instant)
-            await this.captureWithEffects();
+            // Capture the frame (with current pose video state)
+            await this.captureFrame();
 
             // Show results
             this.showScreen('results');
@@ -851,252 +954,11 @@ class PhotoBoothApp {
         }
     }
 
-    /**
-     * Phase 1: Play pose instruction video immediately and keep it playing during countdown
-     */
-    async playPoseInstruction() {
-        console.log('🎭 Phase 1: Playing pose instruction and setup for countdown');
+    // Removed: playPoseInstruction function (replaced with playRandomPoseVideo)
 
-        return new Promise((resolve) => {
-            // Hide the idle video immediately when capture starts
-            this.elements.characterOverlay.style.display = 'none';
+    // Removed: startCountdown function (no countdown in simplified flow)
 
-            // Smart pose selection: prefer loaded poses, fallback to any available
-            let poseOptions = this.state.loadedPoses.length > 0
-                ? this.state.loadedPoses
-                : this.poseVideos.filter(video => !video.includes('idle'));
-
-            // If no poses are loaded yet, use priority pose if available
-            if (poseOptions.length === 0 && this.state.priorityPose) {
-                poseOptions = [this.state.priorityPose];
-            }
-
-            const randomPose = poseOptions[Math.floor(Math.random() * poseOptions.length)];
-
-            console.log('🎯 Pose selection:', {
-                loadedPoses: this.state.loadedPoses,
-                priorityPose: this.state.priorityPose,
-                selectedPose: randomPose,
-                criticalLoaded: this.state.criticalVideosLoaded
-            });
-
-            console.log('🎯 Available videos:', this.poseVideos);
-            console.log('🎯 Pose options (filtered):', poseOptions);
-            console.log('🎯 Selected pose:', randomPose);
-
-            // Determine video path
-            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
-                (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-            const isAndroid = /Android/.test(navigator.userAgent);
-            const isMobile = isIOS || isAndroid || /Mobile|webOS|BlackBerry|Opera Mini|IEMobile|Windows Phone/.test(navigator.userAgent);
-            const useIOSVideo = (isIOS && isMobile) || (!isMobile && !isAndroid);
-            const videoPath = useIOSVideo ? `videos/${randomPose}.mov` : `videos/${randomPose}.webm`;
-
-            // Try to use preloaded video first, fallback to creating new element
-            let poseVideo = this.videoCache.get(videoPath);
-
-            if (poseVideo) {
-                console.log('📦 Using preloaded pose video:', videoPath);
-                // Clone the preloaded video to avoid conflicts
-                poseVideo = poseVideo.cloneNode(true);
-            } else {
-                console.log('⚠️ Creating new pose video element (not preloaded):', videoPath);
-                poseVideo = document.createElement('video');
-
-                // Enhanced video attributes for better performance
-                poseVideo.setAttribute('preload', 'auto');
-                poseVideo.setAttribute('muted', 'true');
-                poseVideo.setAttribute('playsinline', 'true');
-                poseVideo.setAttribute('webkit-playsinline', 'true');
-
-                const source = document.createElement('source');
-                source.src = videoPath;
-                source.type = useIOSVideo ? 'video/quicktime' : 'video/webm; codecs=vp9';
-                poseVideo.appendChild(source);
-            }
-
-            // Configure video element
-            poseVideo.className = 'character-overlay';
-            poseVideo.style.zIndex = '20'; // Higher than base overlay
-            poseVideo.style.display = 'block';
-            poseVideo.muted = true;
-            poseVideo.playsInline = true;
-            poseVideo.loop = true; // Loop the pose video
-
-            // Force proper positioning for pose videos on mobile
-            poseVideo.style.position = 'absolute';
-            poseVideo.style.top = '50%';
-            poseVideo.style.left = '50%';
-            poseVideo.style.width = '100%';
-            poseVideo.style.height = '100%';
-            poseVideo.style.transform = 'translate(-50%, -50%)';
-            poseVideo.style.objectFit = 'contain';
-
-            console.log('🎭 Pose instruction:', {
-                pose: randomPose,
-                src: videoPath,
-                preloaded: this.videoCache.has(videoPath),
-                format: useIOSVideo ? 'MOV' : 'WebM'
-            });
-
-            // Add to DOM
-            this.elements.cameraVideo.parentNode.appendChild(poseVideo);
-            this.state.currentPoseVideo = poseVideo;
-
-            // Enhanced event handlers for better reliability
-            this.setupVideoLoadingWithRetry(poseVideo, 'pose-instruction', 2);
-
-            // Prevent video from pausing and ensure smooth playback
-            poseVideo.addEventListener('pause', () => {
-                console.log('🎬 Pose video paused - attempting to resume');
-                if (!poseVideo.ended) {
-                    poseVideo.play().catch(e => console.warn('Failed to resume paused pose video:', e));
-                }
-            });
-
-            poseVideo.addEventListener('ended', () => {
-                console.log('🔄 Pose video ended - restarting loop');
-                poseVideo.currentTime = 0;
-                poseVideo.play().catch(e => console.warn('Failed to restart pose video:', e));
-            });
-
-            // Enhanced loading detection
-            const checkAndPlay = () => {
-                if (poseVideo.readyState >= 2) { // HAVE_CURRENT_DATA or higher
-                    poseVideo.play().then(() => {
-                        console.log('✅ Pose video started and will continue through countdown');
-                        resolve();
-                    }).catch((error) => {
-                        console.warn('Pose instruction video failed to play:', error);
-                        resolve();
-                    });
-                } else {
-                    // If video from cache, it should already be loaded
-                    if (this.videoCache.has(videoPath)) {
-                        console.log('📦 Cached video not ready, attempting play anyway');
-                        poseVideo.play().then(() => {
-                            console.log('✅ Cached pose video started');
-                            resolve();
-                        }).catch(() => {
-                            console.warn('❌ Cached pose video failed to play');
-                            resolve();
-                        });
-                    } else {
-                        // Wait for new video to load
-                        poseVideo.addEventListener('loadeddata', () => {
-                            poseVideo.play().then(() => {
-                                console.log('✅ New pose video loaded and started');
-                                resolve();
-                            }).catch(() => {
-                                console.warn('❌ New pose video failed to play');
-                                resolve();
-                            });
-                        }, { once: true });
-
-                        // Fallback timeout
-                        setTimeout(() => {
-                            console.warn('⏰ Pose video loading timeout');
-                            resolve();
-                        }, 2000);
-                    }
-                }
-            };
-
-            // Start the process
-            setTimeout(checkAndPlay, 50);
-
-            // Error fallback
-            poseVideo.addEventListener('error', () => {
-                console.warn('❌ Pose instruction video failed to load');
-                resolve();
-            });
-
-            // Fallback timeout
-            setTimeout(() => {
-                console.log('✅ Phase 1 timeout - continuing to countdown');
-                resolve();
-            }, 3000);
-        });
-    }
-
-    /**
- * Phase 2: 3-second countdown (pose video continues playing during countdown)
- */
-    async startCountdown() {
-        console.log('⏰ Phase 2: Starting countdown (3s) - pose video continues playing');
-
-        return new Promise(async (resolve) => {
-            // Ensure pose video keeps playing during countdown
-            if (this.state.currentPoseVideo && this.state.currentPoseVideo.paused) {
-                console.log('🎬 Resuming pose video during countdown');
-                this.state.currentPoseVideo.play().catch(e => console.warn('Failed to resume pose video:', e));
-            }
-
-            // Show countdown overlay (pose video keeps playing underneath)
-            this.elements.countdownOverlay.classList.remove('hidden');
-
-            // Countdown from 3 to 1 (pose video continues playing)
-            for (let i = 3; i >= 1; i--) {
-                // Ensure pose video is still playing at each countdown step
-                if (this.state.currentPoseVideo && this.state.currentPoseVideo.paused) {
-                    console.log(`🎬 Resuming pose video at countdown ${i}`);
-                    this.state.currentPoseVideo.play().catch(e => console.warn('Failed to resume pose video at countdown:', e));
-                }
-
-                // Update countdown number
-                this.elements.countdownNumber.textContent = i;
-
-                // Trigger animation by removing and re-adding class
-                this.elements.countdownNumber.style.animation = 'none';
-                this.elements.countdownNumber.offsetHeight; // Trigger reflow
-                this.elements.countdownNumber.style.animation = 'countdownPulse 1s ease-in-out';
-
-                console.log(`⏱️ Countdown: ${i} (pose video playing: ${this.state.currentPoseVideo ? !this.state.currentPoseVideo.paused : 'no video'})`);
-
-                // Wait exactly 1 second
-                await new Promise(resolve => setTimeout(resolve, 1000));
-            }
-
-            // Hide countdown overlay and wait for UI to stabilize
-            this.elements.countdownOverlay.classList.add('hidden');
-
-            // Final check to ensure pose video is still playing before capture
-            if (this.state.currentPoseVideo && this.state.currentPoseVideo.paused) {
-                console.log('🎬 Final resume of pose video before capture');
-                this.state.currentPoseVideo.play().catch(e => console.warn('Failed to resume pose video before capture:', e));
-            }
-
-            // Small delay to ensure display is stable before capture
-            await new Promise(resolve => setTimeout(resolve, 100));
-
-            console.log('✅ Phase 2 complete - pose video still playing, ready for capture');
-            resolve();
-        });
-    }
-
-    /**
-     * Phase 3: Capture with shutter sound and flash effect
-     */
-    async captureWithEffects() {
-        console.log('📸 Phase 3: Capture with effects');
-
-        // Flash effect
-        await this.showFlashEffect();
-
-        // Play shutter sound (if available)
-        this.playShutterSound();
-
-        // Capture the frame (with pose video still visible)
-        await this.captureFrame();
-
-        // Clean up pose video after capture
-        this.cleanupPoseVideos();
-
-        // Restore idle video for next capture
-        this.elements.characterOverlay.style.display = 'block';
-
-        console.log('✅ Phase 3 complete - photo captured with effects, pose video cleaned up, idle restored');
-    }
+    // Removed: captureWithEffects function (simplified in main capturePhoto)
 
     /**
      * Show flash effect
@@ -1232,7 +1094,7 @@ class PhotoBoothApp {
     }
 
     /**
-     * Enhanced cleanup for pose videos with memory leak prevention
+     * Enhanced cleanup for pose videos (simplified flow - no idle video)
      */
     cleanupPoseVideos() {
         // Clean up current pose video
@@ -1258,9 +1120,8 @@ class PhotoBoothApp {
         // Clean up any orphaned pose videos (memory leak prevention)
         const allVideos = document.querySelectorAll('video');
         allVideos.forEach(video => {
-            // Remove any video that's not the camera video or idle overlay
+            // Remove any video that's not the camera video (no idle overlay in simplified flow)
             if (video !== this.elements.cameraVideo &&
-                video !== this.elements.characterOverlay &&
                 video.className.includes('character-overlay')) {
 
                 try {
@@ -1276,6 +1137,10 @@ class PhotoBoothApp {
                 }
             }
         });
+
+        // Reset pose video state
+        this.state.poseVideoPlaying = false;
+        this.state.poseVideoEnded = false;
 
         // Increment capture count for monitoring
         this.state.captureCount++;
@@ -1504,16 +1369,22 @@ class PhotoBoothApp {
     }
 
     /**
-     * Take another photo
+     * Take another photo (simplified flow)
      */
-    takeAnother() {
+    async takeAnother() {
         this.state.capturedImageData = null;
 
-        // Make sure idle video is visible and any pose videos are cleaned up
+        // Clean up any existing pose videos
         this.cleanupPoseVideos();
-        this.elements.characterOverlay.style.display = 'block';
+
+        // Reset state for new pose video
+        this.state.poseVideoPlaying = false;
+        this.state.poseVideoEnded = false;
 
         this.showScreen('camera');
+
+        // Start a new random pose video
+        await this.playRandomPoseVideo();
     }
 
     /**
