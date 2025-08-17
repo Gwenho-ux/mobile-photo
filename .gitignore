@@ -1,6 +1,3 @@
-# Large video files
-videos/ios/*.mov
-
 # Other files to ignore
 node_modules/
 .DS_Store
