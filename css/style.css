@@ -84,8 +84,15 @@ body {
 }
 
 .permission-content h1 {
+    font-size: 4rem;
+    margin-bottom: 0.5rem;
+    line-height: 1;
+}
+
+.permission-content h2 {
     font-size: 2.5rem;
     margin-bottom: 1rem;
+    font-weight: 600;
 }
 
 .permission-content p {
@@ -424,7 +431,7 @@ body {
     flex-direction: column;
     align-items: center;
     justify-content: flex-start;
-    gap: 8px;
+    gap: 16px;
     box-sizing: border-box;
     padding-top: 2rem;
 }
@@ -442,8 +449,8 @@ body {
     font-family: 'Montserrat', sans-serif;
     font-size: 16px;
     font-weight: 400;
-    color: #fff;
-    opacity: 0.8;
+    color: #25E3B0;
+    opacity: 1;
     margin: 0;
     flex-shrink: 0;
 }
@@ -462,7 +469,7 @@ body {
 .results-footer {
     font-family: 'Montserrat', sans-serif;
     font-size: 18px;
-    font-weight: 700;
+    font-weight: 300;
     color: #fff;
     opacity: 0.9;
     max-width: 320px;
@@ -496,12 +503,12 @@ body {
     
     .results-footer {
         font-size: 16px;
-        font-weight: 700;
+        font-weight: 300;
         max-width: 280px;
     }
     
     .results-content {
-        gap: 6px;
+        gap: 12px;
         justify-content: flex-start;
         padding-top: 1.5rem;
     }
@@ -524,13 +531,13 @@ body {
     
     .results-footer {
         font-size: 14px;
-        font-weight: 700;
+        font-weight: 300;
         max-width: 250px;
         line-height: 1.2;
     }
     
     .results-content {
-        gap: 4px;
+        gap: 8px;
         height: 85vh;
         justify-content: flex-start;
         padding-top: 1rem;
