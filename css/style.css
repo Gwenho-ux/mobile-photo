@@ -449,10 +449,10 @@ body {
 
 .results-subtitle {
     font-family: 'Montserrat', sans-serif;
-    font-size: 16px;
-    font-weight: 400;
-    color: #fff;
-    opacity: 0.8;
+    font-size: 20px;
+    font-weight: 500;
+    color: #25E3B0;
+    opacity: 1;
     margin: 0;
     flex-shrink: 0;
 }
@@ -495,7 +495,8 @@ body {
     }
     
     .results-subtitle {
-        font-size: 14px;
+        font-size: 18px;
+        color: #25E3B0;
     }
     
     .captured-image {
@@ -523,7 +524,8 @@ body {
     }
     
     .results-subtitle {
-        font-size: 12px;
+        font-size: 16px;
+        color: #25E3B0;
     }
     
     .captured-image {
