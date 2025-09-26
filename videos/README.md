@@ -9,8 +9,8 @@ This directory should contain your transparent video files for the photo booth c
 - `idle.webm` - Android version (VP9 with alpha channel)
 
 ### Pose Animations (1-2 seconds)
-- `pose1.mp4` - iOS/Safari version (HEVC with alpha channel)
-- `pose1.webm` - Android version (VP9 with alpha channel)
+- `pose2.mp4` - iOS/Safari version (HEVC with alpha channel)
+- `pose2.webm` - Android version (VP9 with alpha channel)
 
 ## Video Specifications
 

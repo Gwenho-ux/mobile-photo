@@ -126,27 +126,27 @@ class PhotoBoothApp {
         console.log('🔧 DEBUG: isMobile=' + isMobile + ', isIOS=' + isIOS + ', isAndroid=' + isAndroid);
 
         if (isIOS && isMobile) {
-            // iOS mobile devices use MOV files for posing (all 5 poses)
-            this.poseVideos = ['ios/pose1', 'ios/pose2', 'ios/pose3', 'ios/pose4', 'ios/pose5'];
+            // iOS mobile devices use MOV files for posing (4 poses)
+            this.poseVideos = ['ios/pose2', 'ios/pose3', 'ios/pose4', 'ios/pose5'];
             this.state.supportsTransparentVideo = true;  // MOV supports transparency
-            console.log('📱 iOS device detected - using 5 MOV videos from ios folder');
+            console.log('📱 iOS device detected - using 4 MOV videos from ios folder');
         } else if (isAndroid) {
             // Android uses WebM videos, but fallback to iOS if WebM not supported
             if (webmSupport) {
-                this.poseVideos = ['android/pose1', 'android/pose2', 'android/pose3', 'android/pose4', 'android/pose5'];
+                this.poseVideos = ['android/pose2', 'android/pose3', 'android/pose4', 'android/pose5'];
                 this.state.supportsTransparentVideo = true;
-                console.log('🤖 Android device detected - using 5 WebM videos');
+                console.log('🤖 Android device detected - using 4 WebM videos');
             } else {
                 // Fallback to iOS MOV files for Android if WebM not supported
-                this.poseVideos = ['ios/pose1', 'ios/pose2', 'ios/pose3', 'ios/pose4', 'ios/pose5'];
+                this.poseVideos = ['ios/pose2', 'ios/pose3', 'ios/pose4', 'ios/pose5'];
                 this.state.supportsTransparentVideo = true;
-                console.log('🤖 Android device detected - WebM not supported, falling back to 5 iOS MOV videos');
+                console.log('🤖 Android device detected - WebM not supported, falling back to 4 iOS MOV videos');
             }
         } else {
             // Desktop - Use iOS MOV files for testing
-            this.poseVideos = ['ios/pose1', 'ios/pose2', 'ios/pose3', 'ios/pose4', 'ios/pose5'];
+            this.poseVideos = ['ios/pose2', 'ios/pose3', 'ios/pose4', 'ios/pose5'];
             this.state.supportsTransparentVideo = true;  // Assume MOV support on desktop
-            console.log('💻 Desktop device detected - using 5 iOS MOV videos for testing');
+            console.log('💻 Desktop device detected - using 4 iOS MOV videos for testing');
         }
 
         console.log('📱 Device detection complete:', {
@@ -516,8 +516,8 @@ class PhotoBoothApp {
         console.log('📁 Checking file access...');
         const testPaths = [
             'videos/ios/idle.mov',
-            'videos/ios/pose1.mov',
-            'videos/ios/pose2.mov'
+            'videos/ios/pose2.mov',
+            'videos/ios/pose3.mov'
         ];
 
         testPaths.forEach(path => {

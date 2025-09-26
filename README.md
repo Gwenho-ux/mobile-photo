@@ -52,8 +52,8 @@ photo-booth-app/
 ├── videos/
 │   ├── idle.mp4            # Idle animation (iOS)
 │   ├── idle.webm           # Idle animation (Android)
-│   ├── pose1.mp4           # Pose animation (iOS)
-│   └── pose1.webm          # Pose animation (Android)
+│   ├── pose2.mp4           # Pose animation (iOS)
+│   └── pose2.webm          # Pose animation (Android)
 ├── images/
 │   ├── ui-capture.svg      # Capture button icon
 │   ├── ui-flip.svg         # Flip camera icon
@@ -65,7 +65,7 @@ photo-booth-app/
 
 1. **Add Video Assets**: Place your transparent video files in the `videos/` folder:
    - `idle.mp4` and `idle.webm` - Looping idle character animation
-   - `pose1.mp4` and `pose1.webm` - Pose animation for capture
+   - `pose2.mp4` and `pose2.webm` - Pose animation for capture
 
 2. **Customize Overlay**: Replace `images/fallback.png` with your character image
 
@@ -117,7 +117,7 @@ Camera access requires HTTPS in production environments. Use development tools o
 1. Create new video files: `pose2.mp4` and `pose2.webm`
 2. Add to the `poseVideos` array in `script.js`:
    ```javascript
-   this.poseVideos = ['pose1', 'pose2', 'pose3'];
+   this.poseVideos = ['pose2', 'pose3', 'pose4', 'pose5'];
    ```
 
 ### Styling Modifications
